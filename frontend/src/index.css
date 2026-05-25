@@ -1,11 +1,35 @@
-:root {
+* {
+  box-sizing: border-box;
+}
+
+html {
+  --color-text: rgba(255, 255, 255, 0.87);
+  --color-background: #242424;
+  --color-background-light: #383838;
+  --color-background-dark: #1a1a1a;
+  --color-secondary: #1a1a1a;
+  --color-secondary-light: #2a2a2a;
+  --color-secondary-dark: #0d0d0d;
+  --color-primary: #535bf2;
+  --color-primary-light: #646cff;
+  --color-primary-dark: #4f55b6;
+  --color-error: #ff0000;
+  --color-error-light: #ff3333;
+  --color-error-dark: #cc0000;
+  --focus-shadow:
+    0 0 0 2px var(--color-background-light),
+    0 0 0 4px var(--color-primary-light);
+  --base-component-size: 40px;
+  --base-component-radius: calc(var(--base-component-size) / 2);
+  --chat-width: 768px;
+
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: var(--color-text);
+  background-color: var(--color-background);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,54 +39,303 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--color-primary);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: var(--color-primary-light);
+}
+a:active {
+  color: var(--color-primary-dark);
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
 }
 
-h1 {
+#root {
+  padding: 16px;
+  width: 100%;
+  height: 100vh;
+  overflow: auto;
+}
+
+#root:has(#chat.empty) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#toast {
+  min-width: calc(var(--base-component-size) * 4);
+  padding: calc(var(--base-component-size) / 2);
+  border-radius: var(--base-component-radius);
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  color: var(--color-text);
+  font-weight: bolder;
+  background-color: var(--color-background-light);
+}
+#toast.error {
+  background-color: var(--color-error-light);
+}
+
+#loading-bubbles {
+  width: calc(6px * 3 + 4px * 2);
+  display: flex;
+  gap: 4px;
+}
+.loading-bubble {
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-text);
+  border-radius: 50%;
+  animation-name: bounce;
+  animation-duration: 0.8s;
+  animation-iteration-count: infinite;
+  animation-direction: normal;
+  animation-timing-function: ease-in-out;
+}
+.loading-bubble.circle2 {
+  animation-delay: 0.1s;
+}
+.loading-bubble.circle3 {
+  animation-delay: 0.2s;
+}
+@keyframes bounce {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(-6px);
+  }
+}
+
+#welcome-message {
   font-size: 3.2em;
   line-height: 1.1;
+  text-align: center;
+}
+
+#search-suggestions {
+  display: flex;
+  gap: calc(var(--base-component-size) / 2);
+  justify-content: center;
+  align-items: center;
+}
+#search-suggestion {
+  cursor: pointer;
+  padding: calc(var(--base-component-size) / 4)
+    calc(var(--base-component-size) / 4);
+  border-radius: var(--base-component-radius);
+  border: 1px solid transparent;
+  background-color: var(--color-background);
+  font-size: 0.8em;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--base-component-size) / 4);
+  justify-content: center;
+}
+#search-suggestion:hover {
+  background-color: var(--color-background-light);
+}
+#search-suggestion:active {
+  background-color: var(--color-background-dark);
 }
 
 button {
-  border-radius: 8px;
+  height: var(--base-component-size);
+  min-width: var(--base-component-size);
+  outline: none;
+  border-radius: calc(var(--base-component-radius) / 2);
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  padding: 0 12px;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  box-shadow: var(--focus-shadow);
+}
+button:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+button.rounded {
+  border-radius: var(--base-component-radius);
+}
+button.primary {
+  background-color: var(--color-primary);
+}
+button.primary:hover {
+  background-color: var(--color-primary-light);
+}
+button.primary:active {
+  background-color: var(--color-primary-dark);
+}
+button.secondary {
+  background-color: var(--color-secondary);
+}
+button.secondary:hover {
+  background-color: var(--color-secondary-light);
+}
+button.secondary:active {
+  background-color: var(--color-secondary-dark);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+#chat {
+  width: var(--chat-width);
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#chat:not(.empty) {
+  min-height: 100%;
+}
+
+#chat:not(.empty) #searchbar {
+  position: sticky;
+  bottom: 0px;
+  left: 0px;
+}
+
+#messages {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: calc(var(--base-component-size) / 2);
+  gap: calc(var(--base-component-size) / 2);
+  height: 100%;
+  flex: 1;
+}
+
+#message {
+  max-width: 80%;
+  padding: calc(var(--base-component-size) / 4)
+    calc(var(--base-component-size) / 2);
+}
+
+#message[data-role='user'] {
+  min-height: var(--base-component-size);
+  align-self: flex-end;
+  background-color: var(--color-secondary-light);
+  border-radius: var(--base-component-radius);
+}
+
+#message #message-markdown {
+  background-color: var(--color-secondary-light);
+  border-radius: var(--base-component-radius);
+  padding: calc(var(--base-component-size) / 4)
+    calc(var(--base-component-size) / 2);
+  overflow-y: auto;
+  max-height: 60dvh;
+  margin-bottom: calc(var(--base-component-size) / 2);
+}
+
+#message[data-role='assistant'] #message-reasoning #message-reasoning-title {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+}
+#message[data-role='assistant']
+  #message-reasoning
+  #message-reasoning-title[data-collapsed='true'] {
+  margin-bottom: calc(var(--base-component-size) / 4);
+}
+#message[data-role='assistant']
+  #message-reasoning
+  #message-reasoning-title[data-collapsed='false']
+  #message-reasoning-title-icon {
+  transform: rotate(90deg);
+  display: inline-block;
+}
+#message #message-tool {
+  cursor: pointer;
+  user-select: none;
+}
+#message #message-tool[data-collapsed='false'] #message-tool-icon {
+  transform: rotate(90deg);
+  display: inline-block;
+}
+
+#searchbar {
+  width: 100%;
+  padding: calc(var(--base-component-size) / 3);
+  background-color: var(--color-background-light);
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  flex-direction: column;
+  gap: calc(var(--base-component-size) / 2);
+  border-radius: var(--base-component-radius);
+}
+
+#searchbar textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  padding: 8px;
+  background-color: transparent;
+  color: var(--color-text);
+  font-size: 1em;
+  font-family: inherit;
+  resize: none;
+}
+
+#searchbar select {
+  cursor: pointer;
+  height: var(--base-component-size);
+  border: 1px solid transparent;
+  outline: none;
+  padding: 0 4px;
+  background-color: transparent;
+  color: var(--color-text);
+  font-size: 0.9em;
+  font-family: inherit;
+  border-radius: var(--base-component-radius);
+}
+#searchbar select:hover {
+  background-color: var(--color-secondary-light);
+}
+#searchbar select:focus-visible {
+  box-shadow: var(--focus-shadow);
+}
+#searchbar select:disabled {
+  cursor: not-allowed;
+}
+
+#searchbar-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--base-component-size) / 4);
+}
+
+#searchbar-actions-primary,
+#searchbar-actions-secondary {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--base-component-size) / 4);
+}
+
+#searchbar-actions-secondary {
+  flex: 1;
+}
+
+#reasoning-toggle {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--base-component-size) / 8);
+  font-size: 0.9em;
+}
+#reasoning-toggle:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
 }

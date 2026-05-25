@@ -2,16 +2,34 @@
   "name": "backend",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist",
-    "start": "bun run dist/index.js"
+    "init:db": "tsx ./scripts/init_db.ts",
+    "scrape:issues": "tsx ./scripts/scrape_issues.ts",
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "build": "tsc src/index.ts --outDir ./build",
+    "preview": "NODE_ENV=production node --env-file=.env ./build/index.js"
   },
   "dependencies": {
-    "elysia": "latest"
+    "@elysiajs/cors": "1.4.2",
+    "@elysiajs/node": "1.4.5",
+    "@huggingface/transformers": "4.2.0",
+    "@langchain/classic": "1.0.34",
+    "@langchain/community": "1.1.28",
+    "@langchain/core": "1.1.48",
+    "@langchain/mcp-adapters": "1.1.3",
+    "@langchain/ollama": "1.2.7",
+    "@langchain/openrouter": "0.3.0",
+    "@libsql/client": "0.17.3",
+    "elysia": "latest",
+    "langchain": "1.4.2",
+    "natural": "8.1.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "@types/node": "25.9.1",
+    "tsx": "4.22.3",
+    "typescript": "6.0.3"
   },
   "module": "src/index.js"
 }

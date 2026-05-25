@@ -1,2 +1,3 @@
-# codebase-rag
-Foundation project for building a RAG pipeline for a codebase in JS using langchain
+# gitlab-issues-rag
+
+Search GitLab issues with AI
