@@ -1,4 +1,4 @@
-import { DocumentSearchResult, LLM, LLMProvider, SearchStrategy } from '../types.js';
+import { DocumentSearchResult, LLMProvider, SearchStrategy } from '../types.js';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenRouter } from '@langchain/openrouter';
 import {
@@ -8,8 +8,31 @@ import {
   SystemMessage,
   ToolMessage,
 } from 'langchain';
+import { search } from './search.js';
+import { crossEncoder } from './rerank.js';
 import { tools } from './tools.js';
-import { config } from '../utils/config.js';
+import { config, llms } from '../utils/config.js';
+
+const openRouterAnthropicToolCallFix = {
+  name: 'openrouter-anthropic-tool-call-fix',
+  wrapModelCall: async (request: any, handler: any) => {
+    const result = await handler(request);
+    if (result?.tool_calls?.length === 0 && Array.isArray(result?.content)) {
+      const toolCalls = (result.content as any[])
+        .filter((block) => block.id && block.name && block.args !== undefined)
+        .map((block) => ({
+          name: block.name,
+          args: typeof block.args === 'string' ? JSON.parse(block.args) : block.args,
+          id: block.id,
+          type: 'tool_call' as const,
+        }));
+      if (toolCalls.length > 0) {
+        return { ...result, tool_calls: toolCalls };
+      }
+    }
+    return result;
+  },
+};
 
 const ollamaStringifyMiddleware = {
   name: 'ollama-stringify-tool-messages',
@@ -34,14 +57,25 @@ const ollamaStringifyMiddleware = {
 };
 
 export const agent = {
-  stream: async function (
+  invoke: async function (
+    messages: BaseMessage[],
     query: string,
     strategy: SearchStrategy,
+    model: string,
     reasoning: boolean,
-    modelConfig: LLM,
-    reRankedResults: DocumentSearchResult[],
     signal: AbortSignal,
   ) {
+    let reRankedResults: DocumentSearchResult[] = [];
+
+    if (strategy !== SearchStrategy.AGENTIC) {
+      const results = await search[strategy](query, 10);
+
+      reRankedResults = (
+        await crossEncoder.instance().reRank(results, query)
+      ).splice(0, 10);
+    }
+
+    const modelConfig = llms.find((m) => m.model === model)!;
     const llm =
       modelConfig.provider === LLMProvider.Ollama
         ? new ChatOllama({
@@ -54,41 +88,48 @@ export const agent = {
             model: modelConfig.model,
             temperature: config.generation.temperature,
             apiKey: config.generation.provider[modelConfig.provider].apiKey,
+            modelKwargs: {
+              reasoning: {
+                enabled: reasoning,
+              }
+            }
           });
-    const agent = createAgent({
+    const ragAgent = createAgent({
       model: llm,
       tools: strategy === SearchStrategy.AGENTIC ? tools.getAll() : [],
       middleware:
-        modelConfig?.provider === LLMProvider.Ollama &&
         strategy === SearchStrategy.AGENTIC
-          ? [ollamaStringifyMiddleware]
+          ? modelConfig.provider === LLMProvider.Ollama
+            ? [ollamaStringifyMiddleware]
+            : [openRouterAnthropicToolCallFix]
           : [],
     });
-
-    return agent.stream(
-      {
-        messages: [
-          new SystemMessage(
-            `You are a helpful assistant for answering questions based on the retrieved documents. If the query cannot be answered with the provided documents, say you don't know.\n\n${
-              strategy !== SearchStrategy.AGENTIC
-                ? `Here are the retrieved documents:\n\n${reRankedResults
-                    .map(
-                      (r) =>
-                        `Document ID: ${r.id}\nContent: ${r.pageContent}\nScore: ${r.score.toFixed(
-                          4,
-                        )}`,
-                    )
-                    .join('\n\n')}\n\n`
-                : ''
-            }`,
-          ),
-          new HumanMessage(query),
-        ],
-      },
-      {
-        streamMode: ['messages', 'tools'],
-        signal,
-      },
+    const userMessage = new HumanMessage(query);
+    const updatedMessages =
+      messages.length && strategy === SearchStrategy.AGENTIC
+        ? messages.concat(userMessage)
+        : [
+            new SystemMessage(
+              `You are a helpful assistant for answering questions based on the retrieved documents. If the query cannot be answered with the provided documents, say you don't know.${
+                strategy !== SearchStrategy.AGENTIC
+                  ? `Here are the retrieved documents:\n\n${reRankedResults
+                      .map(
+                        (r) =>
+                          `Document ID: ${r.id}\nContent: ${r.pageContent}\nScore: ${r.score.toFixed(
+                            4,
+                          )}`,
+                      )
+                      .join('\n\n')}\n\n`
+                  : ''
+              }`,
+            ),
+            userMessage,
+          ];
+    const response = await ragAgent.invoke(
+      { messages: updatedMessages },
+      { signal },
     );
+
+    return response.messages;
   },
 };

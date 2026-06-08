@@ -1,14 +1,14 @@
-import { use, useEffect, useState } from 'react';
-import { treaty } from '@elysiajs/eden';
-import { SearchStrategy, type LLM, type Message } from '../types';
 import type { App as ServerApp } from '../../../backend/src';
+import { SearchStrategy, type LLM, type Run } from '../types';
+import { treaty } from '@elysiajs/eden';
+import { use, useEffect, useState } from 'react';
 import { Context } from '../Context';
 
 const app = treaty<ServerApp>(location.href);
 
 interface ISearchbarProps {
   loading: boolean;
-  messages: Message[];
+  runs: Run[];
   onSearch: (
     query: string,
     strategy: SearchStrategy,
@@ -19,7 +19,7 @@ interface ISearchbarProps {
 }
 
 const Searchbar = (props: ISearchbarProps) => {
-  const { loading, messages, onSearch, onStop } = props;
+  const { loading, runs, onSearch, onStop } = props;
   const { handleError } = use(Context);
 
   const [models, setModels] = useState<LLM[]>([]);
@@ -31,15 +31,17 @@ const Searchbar = (props: ISearchbarProps) => {
   const [reasoning, setReasoning] = useState(true);
 
   useEffect(() => {
-    app.api.models.get().then(({ data, error }) => {
+    (async () => {
+      const { data, error } = await app.api.models.get();
+
       if (error) {
-        handleError((error.value.message) || 'Failed to fetch models');
+        handleError(error.value.message || 'Failed to fetch models');
         return;
       }
 
       setModels(data);
       setModel(data.find((m) => m.isDefault)?.model || data[0]?.model || '');
-    });
+    })();
   }, [handleError]);
 
   const handleSearch = () => {
@@ -59,24 +61,24 @@ const Searchbar = (props: ISearchbarProps) => {
 
   return (
     <>
-      {!messages.length && <div id="search-suggestions">
-        {[
-          'task assigned to Ronit',
-          'shared files bugs',
-          'tooltip bug',
-        ].map((suggestion) => (
-          <button
-            key={suggestion}
-            id="search-suggestion"
-            onClick={() =>
-              onSearch(suggestion, searchStrategy, model, reasoning)
-            }
-          >
-            <span>🔍</span>
-            <span>{suggestion}</span>
-          </button>
-        ))}
-      </div>}
+      {!runs.length && (
+        <div id="search-suggestions">
+          {['task assigned to Vrajpal', 'shared files bugs', 'tooltip bug'].map(
+            (suggestion) => (
+              <button
+                key={suggestion}
+                className="ghost"
+                onClick={() =>
+                  onSearch(suggestion, searchStrategy, model, reasoning)
+                }
+              >
+                <span>🔍</span>
+                <span>{suggestion}</span>
+              </button>
+            ),
+          )}
+        </div>
+      )}
       <div id="searchbar">
         <textarea
           placeholder="Search the GitLab issues..."

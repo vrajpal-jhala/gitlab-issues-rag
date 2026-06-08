@@ -1,3 +1,4 @@
+import { SearchStrategy } from '../types.js';
 import { z } from 'zod';
 import { DynamicStructuredTool, tool } from '@langchain/core/tools';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
@@ -7,7 +8,7 @@ import { config } from '../utils/config.js';
 
 const schema = z.object({
   type: z
-    .enum(['semantic', 'keyword', 'hybrid'])
+    .enum(SearchStrategy)
     .describe(
       'The type of search to perform. "semantic" for vector-based search, "keyword" for inverted index search, and "hybrid" for a combination of both with RRF.',
     ),
@@ -27,9 +28,11 @@ const search = tool(
   async (input: z.infer<typeof schema>) => {
     const { type, query, topK = 10 } = input;
     let index =
-      type === 'hybrid'
+      type === SearchStrategy.HYBRID
         ? new HybridIndex()
-        : indexing[type === 'semantic' ? 'vectorIndex' : 'invertedIndex']();
+        : indexing[
+            type === SearchStrategy.SEMANTIC ? 'vectorIndex' : 'invertedIndex'
+          ]();
 
     return JSON.stringify(await index.search(query, topK));
   },
@@ -37,7 +40,12 @@ const search = tool(
     name: 'search',
     description: `Search documents using either semantic or keyword-based methods. The "semantic" method uses vector embeddings to find relevant chunks based on meaning, while the "keyword" method uses an inverted index to find chunks containing exact matches of the query terms. The input should specify the type of search and the query string, along with an optional topK parameter to limit the number of results.`,
     schema,
-    tags: ['search', 'semantic', 'keyword', 'hybrid'],
+    tags: [
+      'search',
+      SearchStrategy.SEMANTIC,
+      SearchStrategy.KEYWORD,
+      SearchStrategy.HYBRID,
+    ],
   },
 );
 

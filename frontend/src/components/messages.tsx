@@ -1,93 +1,104 @@
-import { MessageType, type Message } from '../types';
+import type { Run } from '../types';
+import { Fragment, type MouseEventHandler } from 'react';
 import { Markdown } from './markdown';
+import LoadingBubbles from './loading-bubbles';
 
 interface IMessagesProps {
-  messages: Message[];
-  collapsed: Message['id'][];
-  setCollapsed: React.Dispatch<React.SetStateAction<Message['id'][]>>;
-  isLoading: boolean;
+  runs: Run[];
+  collapsed: string[];
+  onCollapse: MouseEventHandler<HTMLElement>;
+  loading: boolean;
 }
 
-const Messages = ({
-  messages,
-  collapsed,
-  setCollapsed,
-  isLoading,
-}: IMessagesProps) => {
+const Messages = ({ runs, collapsed, onCollapse, loading }: IMessagesProps) => {
   return (
     <div id="messages">
-      {messages.map((message) => (
-        <div key={message.id} id="message" data-role={message.type}>
-          {message.type === MessageType.USER ? (
-            message.content
-          ) : message.type === MessageType.ASSISTANT ? (
-            <>
-              <div id="message-reasoning">
-                {message.reasoningContent && (
-                  <>
-                    <strong
-                      id="message-reasoning-title"
-                      data-collapsed={collapsed.includes(message.id)}
-                      onClick={() => {
-                        setCollapsed((prev) =>
-                          prev.includes(message.id)
-                            ? prev.filter((id) => id !== message.id)
-                            : [...prev, message.id],
-                        );
-                      }}
+      {runs.map((run) => {
+        // Index tool outputs by call ID so each tool_input can render its result inline.
+        const toolOutputs = new Map(
+          run.events
+            .filter((e) => e.event === 'tool_output')
+            .map((e) => [e.data.id, e.data.output]),
+        );
+
+        return (
+          <Fragment key={run.id}>
+            {/* User query */}
+            <div id="message" data-role="user">
+              {run.input.query}
+            </div>
+
+            {/* Assistant reply */}
+            {run.events.map((event) => {
+              const eventId = event.data.id;
+
+              console.log(event.data);
+
+              if (event.event === 'message') {
+                return (
+                  <div key={eventId} id="message" data-role="assistant">
+                    <div id="message-reasoning">
+                      {event.data.reasoningContent && (
+                        <>
+                          <strong
+                            id="message-reasoning-title"
+                            data-collapsed={collapsed.includes(eventId)}
+                            data-id={eventId}
+                            onClick={onCollapse}
+                          >
+                            <span id="message-reasoning-title-icon">&gt;</span>{' '}
+                            Thinking
+                          </strong>
+                          {!collapsed.includes(eventId) && (
+                            <div id="message-markdown">
+                              <Markdown content={event.data.reasoningContent} />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <Markdown content={event.data.content} />
+                  </div>
+                );
+              }
+
+              {/* Tool calls */}
+              if (event.event === 'tool_output') return null; // tool_output is merged with tool_input - skip here
+
+              if (event.event === 'tool_input') {
+                const output = toolOutputs.get(eventId);
+
+                return (
+                  <div key={eventId} id="message" data-role="tool">
+                    <span
+                      id="message-tool"
+                      data-collapsed={collapsed.includes(eventId)}
+                      data-id={eventId}
+                      onClick={onCollapse}
                     >
-                      <span id="message-reasoning-title-icon">&gt;</span>{' '}
-                      Thinking
-                    </strong>
-                    {!collapsed.includes(message.id) && (
-                      <div id="message-markdown">
-                        <Markdown content={message.reasoningContent} />
-                      </div>
+                      <span id="message-tool-icon">&gt;</span> {event.data.name}
+                    </span>
+                    {!collapsed.includes(eventId) && (
+                      <pre id="message-markdown">
+                        {JSON.stringify(event.data.input, null, 2)}
+                        {output !== undefined && (
+                          <>
+                            <hr />
+                            {JSON.stringify(JSON.parse(output), null, 2)}
+                          </>
+                        )}
+                      </pre>
                     )}
-                  </>
-                )}
-              </div>
-              <Markdown content={message.content} />
-            </>
-          ) : message.type === MessageType.TOOL ? (
-            <>
-              <span
-                id="message-tool"
-                data-collapsed={collapsed.includes(message.id)}
-                onClick={() => {
-                  setCollapsed((prev) =>
-                    prev.includes(message.id)
-                      ? prev.filter((id) => id !== message.id)
-                      : [...prev, message.id],
-                  );
-                }}
-              >
-                <span id="message-tool-icon">&gt;</span> {message.name}
-              </span>
-              {!collapsed.includes(message.id) && (
-                <pre id="message-markdown">
-                  {JSON.stringify(message.input, null, 2)}
-                  <hr />
-                  {JSON.stringify(
-                    JSON.parse(message.output as string),
-                    null,
-                    2,
-                  )}
-                </pre>
-              )}
-            </>
-          ) : (
-            'Unknown message type'
-          )}
-        </div>
-      ))}
-      {isLoading && (
-        <div id="loading-bubbles">
-          <div className="loading-bubble circle1" />
-          <div className="loading-bubble circle2" />
-          <div className="loading-bubble circle3" />
-        </div>
-      )}
+                  </div>
+                );
+              }
+
+              return null;
+            })}
+          </Fragment>
+        );
+      })}
+      {loading && <LoadingBubbles />}
     </div>
   );
 };

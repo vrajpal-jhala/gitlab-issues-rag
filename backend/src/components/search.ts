@@ -1,3 +1,4 @@
+import { SearchType } from '../types.js';
 import { HybridIndex } from './indexing/hybrid.js';
 import { indexing } from './indexing/index.js';
 
@@ -20,7 +21,7 @@ const hybrid = async (query: string, topK: number = 10) => {
 };
 
 export const search: Record<
-  'keyword' | 'semantic' | 'hybrid',
+  SearchType,
   (query: string, topK?: number) => Promise<any>
 > = {
   keyword,

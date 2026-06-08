@@ -1,7 +1,8 @@
-import { createClient } from '@libsql/client';
-import { config } from '../src/utils/config.js';
 import { access, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { createClient } from '@libsql/client';
+import Database from 'better-sqlite3';
+import { config } from '../src/utils/config.js';
 
 async function initDB() {
   const vectorDbPath = dirname(new URL(config.vectors.url).pathname);
@@ -25,6 +26,33 @@ async function initDB() {
   await vectorClient.execute(
     `CREATE INDEX IF NOT EXISTS idx_${config.vectors.table}_${config.vectors.column} ON ${config.vectors.table}(libsql_vector_idx(${config.vectors.column}))`,
   );
+
+  const databaseClient = new Database(config.database.url);
+
+  // Create threads table in the same DB
+  databaseClient.exec(`
+    CREATE TABLE IF NOT EXISTS threads (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  databaseClient.exec(`
+    CREATE TABLE IF NOT EXISTS runs (
+      id TEXT PRIMARY KEY,
+      thread_id TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+      start_checkpoint_id TEXT,
+      end_checkpoint_id TEXT,
+      status TEXT NOT NULL DEFAULT 'running',
+      input TEXT NOT NULL,
+      events TEXT NOT NULL DEFAULT '[]',
+      error TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
 
   console.log('Database initialized');
 }

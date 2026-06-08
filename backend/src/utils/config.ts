@@ -15,6 +15,9 @@ export const config = {
     table: 'documents',
     column: 'vector',
   },
+  database: {
+    url: `${join(dataPath, 'database.sqlite')}`,
+  },
   embeddings: {
     model: 'nomic-embed-text',
     baseUrl: 'http://10.40.0.20:11434',
@@ -33,6 +36,10 @@ export const config = {
   },
   rerank: {
     model: 'Xenova/ms-marco-TinyBERT-L-2-v2', // local only (huggingface)
+  },
+  classification: {
+    model: 'qwen3.5:latest',
+    provider: LLMProvider.Ollama,
   },
   generation: {
     temperature: 0.1,

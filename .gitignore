@@ -139,6 +139,5 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # app
-.data/cache
-.data/documents
-.data/eval.json
+.data/*
+!.data/stop_words.json

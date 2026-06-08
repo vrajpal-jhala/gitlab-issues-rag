@@ -114,7 +114,7 @@ body {
   }
 }
 
-#welcome-message {
+#heading {
   font-size: 3.2em;
   line-height: 1.1;
   text-align: center;
@@ -125,25 +125,6 @@ body {
   gap: calc(var(--base-component-size) / 2);
   justify-content: center;
   align-items: center;
-}
-#search-suggestion {
-  cursor: pointer;
-  padding: calc(var(--base-component-size) / 4)
-    calc(var(--base-component-size) / 4);
-  border-radius: var(--base-component-radius);
-  border: 1px solid transparent;
-  background-color: var(--color-background);
-  font-size: 0.8em;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--base-component-size) / 4);
-  justify-content: center;
-}
-#search-suggestion:hover {
-  background-color: var(--color-background-light);
-}
-#search-suggestion:active {
-  background-color: var(--color-background-dark);
 }
 
 button {
@@ -186,6 +167,44 @@ button.secondary:hover {
 button.secondary:active {
   background-color: var(--color-secondary-dark);
 }
+button.ghost {
+  cursor: pointer;
+  padding: calc(var(--base-component-size) / 4)
+    calc(var(--base-component-size) / 4);
+  border-radius: var(--base-component-radius);
+  border: 1px solid transparent;
+  background-color: transparent;
+  font-size: 0.8em;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--base-component-size) / 4);
+  justify-content: center;
+}
+button.ghost:hover {
+  background-color: var(--color-background-light);
+}
+button.ghost:active {
+  background-color: var(--color-background-dark);
+}
+button.danger {
+  height: unset;
+  min-width: unset;
+  cursor: pointer;
+  padding: calc(var(--base-component-size) / 8);
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: red;
+  font-size: 0.8em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+button.danger:hover {
+  color: lightcoral;
+}
+button.danger:active {
+  color: darkred;
+}
 
 #chat {
   width: var(--chat-width);
@@ -195,15 +214,20 @@ button.secondary:active {
   flex-direction: column;
   gap: 16px;
 }
-
 #chat:not(.empty) {
   min-height: 100%;
 }
-
 #chat:not(.empty) #searchbar {
   position: sticky;
   bottom: 0px;
   left: 0px;
+}
+#back-button {
+  margin: 0 auto calc(var(--base-component-size));
+  width: max-content;
+  position: sticky;
+  top: 0;
+  text-decoration: underline;
 }
 
 #messages {
@@ -220,14 +244,12 @@ button.secondary:active {
   padding: calc(var(--base-component-size) / 4)
     calc(var(--base-component-size) / 2);
 }
-
 #message[data-role='user'] {
   min-height: var(--base-component-size);
   align-self: flex-end;
   background-color: var(--color-secondary-light);
   border-radius: var(--base-component-radius);
 }
-
 #message #message-markdown {
   background-color: var(--color-secondary-light);
   border-radius: var(--base-component-radius);
@@ -237,7 +259,6 @@ button.secondary:active {
   max-height: 60dvh;
   margin-bottom: calc(var(--base-component-size) / 2);
 }
-
 #message[data-role='assistant'] #message-reasoning #message-reasoning-title {
   position: relative;
   display: inline-block;
@@ -276,7 +297,6 @@ button.secondary:active {
   gap: calc(var(--base-component-size) / 2);
   border-radius: var(--base-component-radius);
 }
-
 #searchbar textarea {
   width: 100%;
   border: none;
@@ -288,7 +308,6 @@ button.secondary:active {
   font-family: inherit;
   resize: none;
 }
-
 #searchbar select {
   cursor: pointer;
   height: var(--base-component-size);
@@ -310,21 +329,18 @@ button.secondary:active {
 #searchbar select:disabled {
   cursor: not-allowed;
 }
-
 #searchbar-actions {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: calc(var(--base-component-size) / 4);
 }
-
 #searchbar-actions-primary,
 #searchbar-actions-secondary {
   display: flex;
   align-items: center;
   gap: calc(var(--base-component-size) / 4);
 }
-
 #searchbar-actions-secondary {
   flex: 1;
 }
@@ -338,4 +354,49 @@ button.secondary:active {
 #reasoning-toggle:has(input:disabled) {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+#threads {
+  height: calc(var(--base-component-size) * 15);
+  max-height: 100%;
+  max-width: 100%;
+  width: calc(var(--base-component-size) * 15);
+  margin: calc((100vh - var(--base-component-size) * 15) / 2 - 16px) auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#thread-list {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: auto;
+  border-radius: var(--base-component-radius);
+  padding: calc(var(--base-component-size) / 2);
+  background-color: var(--color-background-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--base-component-size) / 8);
+}
+#thread {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--base-component-size) / 8);
+}
+#thread #thread-title {
+  width: 100%;
+  justify-content: flex-start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  text-align: left;
+}
+#thread #thread-action {
+  visibility: hidden;
+}
+#thread:hover #thread-action {
+  visibility: visible;
 }
