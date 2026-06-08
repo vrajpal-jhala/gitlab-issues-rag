@@ -32,8 +32,6 @@ const Messages = ({ runs, collapsed, onCollapse, loading }: IMessagesProps) => {
             {run.events.map((event) => {
               const eventId = event.data.id;
 
-              console.log(event.data);
-
               if (event.event === 'message') {
                 return (
                   <div key={eventId} id="message" data-role="assistant">
