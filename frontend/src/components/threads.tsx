@@ -11,13 +11,20 @@ const app = treaty<ServerApp>(location.href);
 interface ITheadsProps {
   loadingThreads: boolean;
   threads: Thread[];
+  onThreadCreate: () => void;
   onThreadClick: (threadId: string) => void;
   onThreadDelete: (threadId: string) => void;
 }
 
 const Threads = (props: ITheadsProps) => {
   const { handleError } = use(Context);
-  const { loadingThreads, threads, onThreadClick, onThreadDelete } = props;
+  const {
+    loadingThreads,
+    threads,
+    onThreadCreate,
+    onThreadClick,
+    onThreadDelete,
+  } = props;
 
   const handleDeleteThread = async (e: MouseEvent<HTMLButtonElement>) => {
     const {
@@ -41,6 +48,9 @@ const Threads = (props: ITheadsProps) => {
   return (
     <div id="threads">
       <Heading>💬 Sessions</Heading>
+      <button className="ghost" onClick={onThreadCreate}>
+        + &nbsp; New
+      </button>
       {loadingThreads ? (
         <LoadingBubbles />
       ) : threads.length ? (
