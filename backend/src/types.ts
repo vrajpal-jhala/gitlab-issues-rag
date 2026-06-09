@@ -40,17 +40,15 @@ export const SearchStrategy = {
   HYBRID: 'hybrid',
 } as const;
 
+export type SearchStrategy =
+  (typeof SearchStrategy)[keyof typeof SearchStrategy];
+
 export type RunInput = {
   query: string;
   strategy: SearchStrategy;
   model: string;
   reasoning: boolean;
 };
-
-export type SearchStrategy =
-  (typeof SearchStrategy)[keyof typeof SearchStrategy];
-
-export type SearchType = 'semantic' | 'keyword' | 'hybrid';
 
 export type MessageEvent = {
   event: 'message';
@@ -60,6 +58,8 @@ export type MessageEvent = {
     reasoningContent: string;
   };
 };
+
+export type SearchType = Exclude<SearchStrategy, 'agentic'>;
 
 export type ToolInputEvent = {
   event: 'tool_input';
@@ -91,7 +91,13 @@ export type Thread = {
   updated_at: string;
 };
 
-export type RunStatus = 'running' | 'completed' | 'failed';
+export const RunStatus = {
+  RUNNING: 'running',
+  COMPLETED: 'completed',
+  FAILED: 'failed'
+} as const;
+
+export type RunStatus = typeof RunStatus[keyof typeof RunStatus];
 
 export type Run = {
   id: string;

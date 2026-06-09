@@ -37,7 +37,7 @@ export class Chunker {
           id: `${file.name}_${index}`,
           pageContent: chunk,
           metadata: {
-            path: path.relative(config.documentsPath, documentPath),
+            path: documentPath,
             chunkIndex: index,
             totalChunks: chunks.length,
           },

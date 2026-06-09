@@ -68,7 +68,7 @@ export const llms: LLM[] = [
   {
     provider: LLMProvider.Ollama,
     name: 'Qwen 3.6 (35B)',
-    model: 'qwen3.6:35b',
+    model: 'qwen3.6:latest',
   },
   {
     provider: LLMProvider.Ollama,

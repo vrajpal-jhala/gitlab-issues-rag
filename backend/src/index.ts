@@ -1,16 +1,9 @@
-import {
-  RunEvent,
-  Run,
-  SearchStrategy,
-  Thread,
-  MessageEvent,
-  RunInput,
-} from './types.js';
+import { RunEvent, Run, SearchStrategy, Thread, RunInput } from './types.js';
 import { Elysia, sse } from 'elysia';
 import { node } from '@elysiajs/node';
 import { cors } from '@elysiajs/cors';
 import { z } from 'zod';
-import { workflow } from './components/workflow.js';
+import { runManager } from './components/runManager.js';
 import { services } from './utils/services.js';
 import { llms } from './utils/config.js';
 import { getDb } from './utils/db.js';
@@ -20,94 +13,55 @@ const PORT = 3000;
 // Initialize services (e.g., build indexes)
 await services.init();
 
+// Wrap a run's event stream with a trailing run_end control frame carrying the
+// terminal status. Used by both the POST (start + stream) and GET (resume)
+// endpoints so the client consumes them identically.
+async function* streamRun(runId: string) {
+  for await (const event of runManager.stream(runId)) {
+    yield sse(event);
+  }
+
+  yield sse({
+    event: 'run_end',
+    data: { status: runManager.getStatus(runId) ?? 'completed' },
+  });
+}
+
 export const app = new Elysia({ adapter: node() })
   .group('/api', (app) =>
     app
       .use(cors())
       .post(
-        '/threads/:id/runs/stream',
-        async function* ({ body, params, request }) {
+        '/threads/:id/runs/:runId/stream',
+        async function* ({ body, params }) {
           const { strategy, query, reasoning, model } = body;
-          const { id: threadId } = params;
-          const title = query.length > 60 ? query.slice(0, 60) + '…' : query;
+          const { id: threadId, runId } = params;
 
-          getDb()
-            .prepare(
-              `INSERT INTO threads (id, title) VALUES (?, ?)
-               ON CONFLICT (id) DO UPDATE SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
-            )
-            .run(threadId, title);
+          const exists = getDb()
+            .prepare('SELECT 1 FROM runs WHERE id = ?')
+            .get(runId);
 
-          const runId = crypto.randomUUID();
-          const startCheckpointId = await workflow.getCheckpointId(threadId);
+          if (!exists) {
+            const title = query.length > 60 ? query.slice(0, 60) + '…' : query;
 
-          getDb()
-            .prepare(
-              `INSERT INTO runs (id, thread_id, start_checkpoint_id, status, input)
-               VALUES (?, ?, ?, 'running', ?)`,
-            )
-            .run(
-              runId,
+            getDb()
+              .prepare(
+                `INSERT INTO threads (id, title) VALUES (?, ?)
+                 ON CONFLICT (id) DO UPDATE SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
+              )
+              .run(threadId, title);
+
+            // Detached background run
+            runManager.start(runId, {
               threadId,
-              startCheckpointId,
-              JSON.stringify({ query, strategy, model, reasoning }),
-            );
-
-          const stream = workflow.stream(
-            query,
-            strategy,
-            model,
-            reasoning,
-            threadId,
-            request.signal,
-          );
-
-          const events: RunEvent[] = [];
-          let currentMessage: MessageEvent['data'] | null = null;
-
-          const flushMessage = () => {
-            if (currentMessage) {
-              events.push({ event: 'message', data: currentMessage });
-              currentMessage = null;
-            }
-          };
-
-          try {
-            for await (const event of stream) {
-              if (event.event === 'message') {
-                if (!currentMessage) {
-                  currentMessage = { id: event.data.id, content: '', reasoningContent: '' };
-                }
-                currentMessage.content += event.data.content;
-                currentMessage.reasoningContent += event.data.reasoningContent;
-              } else {
-                flushMessage();
-                events.push(event);
-              }
-              yield sse(event);
-            }
-
-            flushMessage();
-
-            const endCheckpointId = await workflow.getCheckpointId(threadId);
-
-            getDb()
-              .prepare(
-                `UPDATE runs SET status='completed', end_checkpoint_id=?, events=?,
-                 updated_at=datetime('now') WHERE id=?`,
-              )
-              .run(endCheckpointId, JSON.stringify(events), runId);
-          } catch (e: any) {
-            if (e?.name === 'AbortError') return;
-
-            getDb()
-              .prepare(
-                `UPDATE runs SET status='failed', error=?, updated_at=datetime('now') WHERE id=?`,
-              )
-              .run(e.message ?? 'Unknown error', runId);
-
-            throw e;
+              query,
+              strategy,
+              model,
+              reasoning,
+            });
           }
+
+          yield* streamRun(runId);
         },
         {
           body: z.object({
@@ -118,6 +72,20 @@ export const app = new Elysia({ adapter: node() })
           }),
         },
       )
+      .get('/threads/:id/runs/:runId/stream', async function* ({ params }) {
+        yield* streamRun(params.runId);
+      })
+      .post('/threads/:id/runs/:runId/stop', ({ params: { runId }, set }) => {
+        const aborted = runManager.abort(runId);
+
+        if (!aborted) {
+          set.status = 404;
+
+          return { error: 'Run not found' };
+        }
+
+        return '';
+      })
       .get('/threads', () => {
         return getDb()
           .prepare<

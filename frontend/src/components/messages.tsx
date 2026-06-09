@@ -32,37 +32,35 @@ const Messages = ({ runs, collapsed, onCollapse, loading }: IMessagesProps) => {
             {run.events.map((event) => {
               const eventId = event.data.id;
 
-              console.log(event.data);
-
               if (event.event === 'message') {
                 return (
                   <div key={eventId} id="message" data-role="assistant">
-                    <div id="message-reasoning">
-                      {event.data.reasoningContent && (
-                        <>
-                          <strong
-                            id="message-reasoning-title"
-                            data-collapsed={collapsed.includes(eventId)}
-                            data-id={eventId}
-                            onClick={onCollapse}
-                          >
-                            <span id="message-reasoning-title-icon">&gt;</span>{' '}
-                            Thinking
-                          </strong>
-                          {!collapsed.includes(eventId) && (
-                            <div id="message-markdown">
-                              <Markdown content={event.data.reasoningContent} />
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
+                    {event.data.reasoningContent && (
+                      <div id="message-reasoning">
+                        <strong
+                          id="message-reasoning-title"
+                          data-collapsed={collapsed.includes(eventId)}
+                          data-id={eventId}
+                          onClick={onCollapse}
+                        >
+                          <span id="message-reasoning-title-icon">&gt;</span>{' '}
+                          Thinking
+                        </strong>
+                        {!collapsed.includes(eventId) && (
+                          <div id="message-markdown">
+                            <Markdown content={event.data.reasoningContent} />
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <Markdown content={event.data.content} />
                   </div>
                 );
               }
 
-              {/* Tool calls */}
+              {
+                /* Tool calls */
+              }
               if (event.event === 'tool_output') return null; // tool_output is merged with tool_input - skip here
 
               if (event.event === 'tool_input') {
